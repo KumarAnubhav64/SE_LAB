@@ -11,7 +11,8 @@ public class PreviewModule {
 
         String safeHtml = html == null ? "" : html;
         if (validation == null || validation.isValid()) {
-            preview.getEngine().loadContent(safeHtml.isBlank() ? "<h3>Start typing HTML...</h3>" : safeHtml);
+            String content = safeHtml.isBlank() ? "<h3>Start typing HTML...</h3>" : safeHtml;
+            preview.getEngine().loadContent(content, "text/html");
             return;
         }
 
@@ -22,7 +23,7 @@ public class PreviewModule {
                 %s
                 """.formatted(escapeHtml(validation.getMessage()), safeHtml);
 
-        preview.getEngine().loadContent(warning);
+        preview.getEngine().loadContent(warning, "text/html");
     }
 
     private String escapeHtml(String text) {

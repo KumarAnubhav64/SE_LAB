@@ -63,7 +63,7 @@ echo "Building jpackage app-image..."
 	--main-jar "$(basename "${JAR_PATH}")" \
 	--main-class "${MAIN_CLASS}" \
 	--module-path "${JDK}/jmods:${JFX}" \
-	--add-modules javafx.controls,javafx.web \
+	--add-modules javafx.controls,javafx.web,java.net.http,jdk.crypto.ec,jdk.crypto.cryptoki \
 	--dest "${OUTPUT_DIR}"
 
 echo "Build complete."

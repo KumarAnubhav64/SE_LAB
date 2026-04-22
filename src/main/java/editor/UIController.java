@@ -38,14 +38,19 @@ public class UIController {
     private final GitModule         gitModule         = new GitModule();
     private final FindReplaceModule findReplaceModule = new FindReplaceModule();
     private final FileTreePanel     fileTreePanel     = new FileTreePanel();
+    private final GeminiModule      geminiModule      = new GeminiModule();
 
     private final TabManager tabManager =
             new TabManager(tabPane, editorModule, parserModule, previewModule);
 
     // ── Git working directory (remembered across operations) ──────────────────
-    private Path    gitWorkDir   = null;
-    private VBox    sidebarPane  = null;
-    private SplitPane centerSplit = null;
+    private Path    gitWorkDir      = null;
+    private VBox    sidebarPane     = null;
+    private SplitPane centerSplit   = null;
+    // ── AI panel ─────────────────────────────────────────────────────────────
+    private VBox    aiPanel         = null;
+    private boolean aiPanelVisible  = false;
+    private SplitPane mainSplit     = null;   // centerSplit | aiPanel
 
     // =========================================================================
     public void init(Stage stage) {
@@ -69,14 +74,20 @@ public class UIController {
         fileTreePanel.setOnFileOpen(path ->
                 fileModule.openPathInTab(path, tabManager, statusLabel));
 
-        // Auto-sync git dir with sidebar root
-        // (when user opens a folder in the sidebar, update git working dir)
-        // Handled via requireGitDir() which checks tabManager's current file path.
+        // ── AI panel (hidden until toggled) ─────────────────────────────────
+        aiPanel = buildAiPanel(stage);
+        aiPanel.setVisible(false);
+        aiPanel.setManaged(false);
 
         // ── Center split: sidebar | editor+preview ───────────────────────────
         centerSplit = new SplitPane(sidebarPane, tabPane);
         centerSplit.setDividerPositions(0.17);
         SplitPane.setResizableWithParent(sidebarPane, false);
+
+        // ── Main split: center | AI panel ────────────────────────────────────
+        mainSplit = new SplitPane(centerSplit, aiPanel);
+        mainSplit.setDividerPositions(0.72);
+        SplitPane.setResizableWithParent(aiPanel, false);
 
         BorderPane root   = new BorderPane();
         Label      header = new Label("Write HTML on the left, check output on the right.");
@@ -90,7 +101,7 @@ public class UIController {
         topSection.getStyleClass().add("top-section");
 
         root.setTop(topSection);
-        root.setCenter(centerSplit);
+        root.setCenter(mainSplit);
         root.setBottom(statusLabel);
         statusLabel.getStyleClass().add("status-bar");
         BorderPane.setMargin(statusLabel, new Insets(2, 8, 4, 8));
@@ -441,7 +452,44 @@ public class UIController {
                 gitCommit, gitLog, gitDiff, gitBranch
         );
 
-        menuBar.getMenus().addAll(fileMenu, editMenu, toolsMenu, viewMenu, gitMenu);
+        // ── AI ────────────────────────────────────────────────────────────────
+        Menu aiMenu = new Menu("✨ AI");
+
+        MenuItem aiGenerate    = new MenuItem("✨ Generate HTML from prompt…");
+        MenuItem aiFix         = new MenuItem("🔧 Fix HTML errors");
+        MenuItem aiImprove     = new MenuItem("⬆ Improve & modernise");
+        MenuItem aiSeo         = new MenuItem("🔍 Add SEO meta tags");
+        MenuItem aiA11y        = new MenuItem("♿ Improve accessibility");
+        MenuItem aiExplain     = new MenuItem("📖 Explain this HTML");
+        MenuItem aiPanel_toggle = new MenuItem("🤖 Toggle AI Panel");
+        MenuItem aiSetKey      = new MenuItem("🔑 Set API Key…");
+
+        aiGenerate.setAccelerator(acc(KeyCode.G, true));
+        aiFix.setAccelerator(acc(KeyCode.F, true));
+
+        aiGenerate.setOnAction(e -> runAi(GeminiModule.SYS_HTML_GENERATE,
+                promptUser("Generate HTML", "Describe the page you want:"), false));
+        aiFix.setOnAction(e -> runAi(GeminiModule.SYS_HTML_FIX,
+                "Fix this HTML:\n\n" + tabManager.getCurrentHtml(), true));
+        aiImprove.setOnAction(e -> runAi(GeminiModule.SYS_HTML_IMPROVE,
+                tabManager.getCurrentHtml(), true));
+        aiSeo.setOnAction(e -> runAi(GeminiModule.SYS_SEO,
+                tabManager.getCurrentHtml(), true));
+        aiA11y.setOnAction(e -> runAi(GeminiModule.SYS_ACCESSIBILITY,
+                tabManager.getCurrentHtml(), true));
+        aiExplain.setOnAction(e -> runAiExplain(tabManager.getCurrentHtml()));
+        aiPanel_toggle.setOnAction(e -> toggleAiPanel());
+        aiSetKey.setOnAction(e -> showSetKeyDialog());
+
+        aiMenu.getItems().addAll(
+                aiPanel_toggle, aiSetKey,
+                new SeparatorMenuItem(),
+                aiGenerate, aiFix, aiImprove,
+                new SeparatorMenuItem(),
+                aiSeo, aiA11y, aiExplain
+        );
+
+        menuBar.getMenus().addAll(fileMenu, editMenu, toolsMenu, viewMenu, gitMenu, aiMenu);
         return menuBar;
     }
 
@@ -638,6 +686,329 @@ public class UIController {
     }
 
     // =========================================================================
+    // AI helpers
+    // =========================================================================
+
+    /**
+     * Build the AI side panel — a VBox with a prompt area, action buttons,
+     * and an output area.  Hidden by default; toggled via toggleAiPanel().
+     */
+    private VBox buildAiPanel(Stage stage) {
+        // ── Header ────────────────────────────────────────────────────────────
+        Label title = new Label("✨ AI Assistant");
+        title.getStyleClass().add("ai-panel-title");
+        title.setStyle("-fx-font-size:16px; -fx-font-weight:bold; -fx-padding:8 0 4 0;");
+
+        // ── Prompt field ──────────────────────────────────────────────────────
+        Label promptLbl = new Label("Your prompt:");
+        TextArea promptArea = new TextArea();
+        promptArea.setId("aiPromptArea");
+        promptArea.setPromptText("Describe the HTML page you want, ask a question, or type any instruction…");
+        promptArea.setWrapText(true);
+        promptArea.setPrefRowCount(5);
+        promptArea.setStyle("-fx-font-size:13px;");
+
+        // ── Quick-action buttons ──────────────────────────────────────────────
+        Button btnGenerate = new Button("✨ Generate");
+        Button btnFix      = new Button("🔧 Fix Errors");
+        Button btnImprove  = new Button("⬆ Improve");
+        Button btnSeo      = new Button("🔍 SEO");
+        Button btnA11y     = new Button("♿ A11y");
+        Button btnExplain  = new Button("📖 Explain");
+
+        for (Button b : new Button[]{btnGenerate, btnFix, btnImprove, btnSeo, btnA11y, btnExplain}) {
+            b.setMaxWidth(Double.MAX_VALUE);
+            b.getStyleClass().add("ai-action-btn");
+        }
+
+        // ── Output area ───────────────────────────────────────────────────────
+        Label outputLbl = new Label("AI Response:");
+        TextArea outputArea = new TextArea();
+        outputArea.setId("aiOutputArea");
+        outputArea.setEditable(false);
+        outputArea.setWrapText(true);
+        outputArea.setStyle("-fx-font-size:13px; -fx-font-family: monospace;");
+        VBox.setVgrow(outputArea, javafx.scene.layout.Priority.ALWAYS);
+
+        // ── Apply / Discard ───────────────────────────────────────────────────
+        Button btnApply   = new Button("✅ Apply to Editor");
+        Button btnDiscard = new Button("✖ Discard");
+        btnApply.setDisable(true);
+        btnDiscard.setDisable(true);
+        btnApply.setMaxWidth(Double.MAX_VALUE);
+        btnDiscard.setMaxWidth(Double.MAX_VALUE);
+        btnApply.getStyleClass().add("ai-apply-btn");
+        btnDiscard.getStyleClass().add("ai-discard-btn");
+
+        // ── Status label ──────────────────────────────────────────────────────
+        Label aiStatus = new Label("Ready.");
+        aiStatus.setId("aiStatusLabel");
+        aiStatus.setStyle("-fx-font-size:12px; -fx-text-fill: #aaa;");
+
+        // Holder for the last AI response (to apply to editor)
+        final String[] pendingAiHtml = {null};
+        final boolean[] isHtmlResponse = {false};
+
+        // ── Wire buttons ──────────────────────────────────────────────────────
+        Runnable doSend = () -> {
+            String prompt = promptArea.getText().strip();
+            if (prompt.isEmpty()) return;
+            aiStatus.setText("⏳ Thinking…");
+            outputArea.setText("");
+            btnApply.setDisable(true);
+            btnDiscard.setDisable(true);
+            String key = geminiModule.resolveKey();
+            if (key == null) { aiStatus.setText("⚠ No API key. Use ✨ AI → Set API Key…"); return; }
+            geminiModule.generate(
+                GeminiModule.SYS_HTML_GENERATE, prompt, key,
+                text -> javafx.application.Platform.runLater(() -> {
+                    outputArea.setText(text);
+                    pendingAiHtml[0] = text;
+                    isHtmlResponse[0] = true;
+                    btnApply.setDisable(false);
+                    btnDiscard.setDisable(false);
+                    aiStatus.setText("✅ Done.");
+                }),
+                err -> javafx.application.Platform.runLater(() -> {
+                    outputArea.setText("Error: " + err);
+                    aiStatus.setText("❌ Error.");
+                })
+            );
+        };
+
+        // Ctrl+Enter in the prompt textarea sends
+        promptArea.setOnKeyPressed(ev -> {
+            if (ev.getCode() == KeyCode.ENTER && ev.isControlDown()) {
+                doSend.run();
+            }
+        });
+
+        btnGenerate.setOnAction(e -> doSend.run());
+
+        btnFix.setOnAction(e -> {
+            String html = tabManager.getCurrentHtml();
+            aiStatus.setText("⏳ Fixing…");
+            outputArea.setText("");
+            btnApply.setDisable(true); btnDiscard.setDisable(true);
+            String key = geminiModule.resolveKey();
+            if (key == null) { aiStatus.setText("⚠ No API key."); return; }
+            geminiModule.generate(GeminiModule.SYS_HTML_FIX, html, key,
+                text -> javafx.application.Platform.runLater(() -> {
+                    outputArea.setText(text); pendingAiHtml[0] = text; isHtmlResponse[0] = true;
+                    btnApply.setDisable(false); btnDiscard.setDisable(false); aiStatus.setText("✅ Done.");
+                }),
+                err -> javafx.application.Platform.runLater(() -> { outputArea.setText("Error: " + err); aiStatus.setText("❌ Error."); }));
+        });
+
+        btnImprove.setOnAction(e -> {
+            String html = tabManager.getCurrentHtml();
+            aiStatus.setText("⏳ Improving…");
+            outputArea.setText(""); btnApply.setDisable(true); btnDiscard.setDisable(true);
+            String key = geminiModule.resolveKey();
+            if (key == null) { aiStatus.setText("⚠ No API key."); return; }
+            geminiModule.generate(GeminiModule.SYS_HTML_IMPROVE, html, key,
+                text -> javafx.application.Platform.runLater(() -> {
+                    outputArea.setText(text); pendingAiHtml[0] = text; isHtmlResponse[0] = true;
+                    btnApply.setDisable(false); btnDiscard.setDisable(false); aiStatus.setText("✅ Done.");
+                }),
+                err -> javafx.application.Platform.runLater(() -> { outputArea.setText("Error: " + err); aiStatus.setText("❌ Error."); }));
+        });
+
+        btnSeo.setOnAction(e -> {
+            String html = tabManager.getCurrentHtml();
+            aiStatus.setText("⏳ Adding SEO…");
+            outputArea.setText(""); btnApply.setDisable(true); btnDiscard.setDisable(true);
+            String key = geminiModule.resolveKey();
+            if (key == null) { aiStatus.setText("⚠ No API key."); return; }
+            geminiModule.generate(GeminiModule.SYS_SEO, html, key,
+                text -> javafx.application.Platform.runLater(() -> {
+                    outputArea.setText(text); pendingAiHtml[0] = text; isHtmlResponse[0] = true;
+                    btnApply.setDisable(false); btnDiscard.setDisable(false); aiStatus.setText("✅ Done.");
+                }),
+                err -> javafx.application.Platform.runLater(() -> { outputArea.setText("Error: " + err); aiStatus.setText("❌ Error."); }));
+        });
+
+        btnA11y.setOnAction(e -> {
+            String html = tabManager.getCurrentHtml();
+            aiStatus.setText("⏳ Improving accessibility…");
+            outputArea.setText(""); btnApply.setDisable(true); btnDiscard.setDisable(true);
+            String key = geminiModule.resolveKey();
+            if (key == null) { aiStatus.setText("⚠ No API key."); return; }
+            geminiModule.generate(GeminiModule.SYS_ACCESSIBILITY, html, key,
+                text -> javafx.application.Platform.runLater(() -> {
+                    outputArea.setText(text); pendingAiHtml[0] = text; isHtmlResponse[0] = true;
+                    btnApply.setDisable(false); btnDiscard.setDisable(false); aiStatus.setText("✅ Done.");
+                }),
+                err -> javafx.application.Platform.runLater(() -> { outputArea.setText("Error: " + err); aiStatus.setText("❌ Error."); }));
+        });
+
+        btnExplain.setOnAction(e -> {
+            String html = tabManager.getCurrentHtml();
+            aiStatus.setText("⏳ Explaining…");
+            outputArea.setText(""); btnApply.setDisable(true); btnDiscard.setDisable(true);
+            String key = geminiModule.resolveKey();
+            if (key == null) { aiStatus.setText("⚠ No API key."); return; }
+            geminiModule.generate(GeminiModule.SYS_HTML_EXPLAIN, html, key,
+                text -> javafx.application.Platform.runLater(() -> {
+                    outputArea.setText(text); pendingAiHtml[0] = text; isHtmlResponse[0] = false;
+                    btnApply.setDisable(true);  // explanation can't be applied
+                    btnDiscard.setDisable(false); aiStatus.setText("✅ Done.");
+                }),
+                err -> javafx.application.Platform.runLater(() -> { outputArea.setText("Error: " + err); aiStatus.setText("❌ Error."); }));
+        });
+
+        btnApply.setOnAction(e -> {
+            if (pendingAiHtml[0] != null && isHtmlResponse[0]) {
+                tabManager.setCurrentText(pendingAiHtml[0]);
+                statusLabel.setText("AI result applied to editor.");
+                btnApply.setDisable(true); btnDiscard.setDisable(true);
+                aiStatus.setText("Applied ✅");
+            }
+        });
+
+        btnDiscard.setOnAction(e -> {
+            outputArea.setText(""); pendingAiHtml[0] = null;
+            btnApply.setDisable(true); btnDiscard.setDisable(true);
+            aiStatus.setText("Discarded.");
+        });
+
+        // ── Quick actions row ─────────────────────────────────────────────────
+        javafx.scene.layout.GridPane grid = new javafx.scene.layout.GridPane();
+        grid.setHgap(6); grid.setVgap(6);
+        grid.addRow(0, btnGenerate, btnFix);
+        grid.addRow(1, btnImprove, btnSeo);
+        grid.addRow(2, btnA11y, btnExplain);
+        javafx.scene.layout.ColumnConstraints cc = new javafx.scene.layout.ColumnConstraints();
+        cc.setPercentWidth(50);
+        grid.getColumnConstraints().addAll(cc, cc);
+
+        // ── Apply / Discard row ───────────────────────────────────────────────
+        HBox applyRow = new HBox(6, btnApply, btnDiscard);
+        HBox.setHgrow(btnApply,   javafx.scene.layout.Priority.ALWAYS);
+        HBox.setHgrow(btnDiscard, javafx.scene.layout.Priority.ALWAYS);
+
+        // ── Separator ─────────────────────────────────────────────────────────
+        Separator sep1 = new Separator();
+        Separator sep2 = new Separator();
+
+        // ── Assemble ──────────────────────────────────────────────────────────
+        VBox panel = new VBox(8,
+                title, sep1,
+                promptLbl, promptArea,
+                grid,
+                sep2,
+                outputLbl, outputArea,
+                applyRow,
+                aiStatus
+        );
+        panel.setPadding(new Insets(10));
+        panel.getStyleClass().add("ai-panel");
+        VBox.setVgrow(outputArea, javafx.scene.layout.Priority.ALWAYS);
+        return panel;
+    }
+
+    /** Toggle the AI side panel visibility. */
+    private void toggleAiPanel() {
+        if (aiPanel == null || mainSplit == null) return;
+        aiPanelVisible = !aiPanelVisible;
+        aiPanel.setVisible(aiPanelVisible);
+        aiPanel.setManaged(aiPanelVisible);
+        if (aiPanelVisible) {
+            if (mainSplit.getItems().size() == 1)
+                mainSplit.getItems().add(aiPanel);
+            mainSplit.setDividerPositions(0.72);
+        } else {
+            mainSplit.setDividerPositions(1.0);
+        }
+        statusLabel.setText(aiPanelVisible ? "AI Panel opened." : "AI Panel closed.");
+    }
+
+    /**
+     * Run an AI action from the menu bar (no panel — shows result in a dialog
+     * and optionally replaces editor content).
+     */
+    private void runAi(String systemPrompt, String userPrompt, boolean replaceEditor) {
+        if (userPrompt == null || userPrompt.isBlank()) return;
+        String key = geminiModule.resolveKey();
+        if (key == null) { showSetKeyDialog(); return; }
+        statusLabel.setText("⏳ Asking AI…");
+        geminiModule.generate(systemPrompt, userPrompt, key,
+            text -> javafx.application.Platform.runLater(() -> {
+                statusLabel.setText("AI done.");
+                if (replaceEditor) {
+                    Alert conf = new Alert(Alert.AlertType.CONFIRMATION,
+                        "Apply AI result to editor?", ButtonType.YES, ButtonType.NO);
+                    conf.setHeaderText("AI response ready");
+                    conf.showAndWait().ifPresent(bt -> {
+                        if (bt == ButtonType.YES) tabManager.setCurrentText(text);
+                    });
+                } else {
+                    // Show in a dialog
+                    TextArea ta = new TextArea(text);
+                    ta.setEditable(false); ta.setWrapText(true);
+                    ta.setPrefRowCount(25); ta.setPrefColumnCount(80);
+                    Dialog<Void> dlg = new Dialog<>();
+                    dlg.setTitle("AI Result");
+                    dlg.getDialogPane().setContent(ta);
+                    dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+                    dlg.showAndWait();
+                }
+            }),
+            err -> javafx.application.Platform.runLater(() -> statusLabel.setText("AI error: " + err))
+        );
+    }
+
+    /** Show explanation in a dialog (not applied to editor). */
+    private void runAiExplain(String html) {
+        if (html == null || html.isBlank()) return;
+        String key = geminiModule.resolveKey();
+        if (key == null) { showSetKeyDialog(); return; }
+        statusLabel.setText("⏳ Explaining…");
+        geminiModule.generate(GeminiModule.SYS_HTML_EXPLAIN, html, key,
+            text -> javafx.application.Platform.runLater(() -> {
+                statusLabel.setText("Done.");
+                TextArea ta = new TextArea(text);
+                ta.setEditable(false); ta.setWrapText(true);
+                ta.setPrefRowCount(25); ta.setPrefColumnCount(80);
+                Dialog<Void> dlg = new Dialog<>();
+                dlg.setTitle("HTML Explanation");
+                dlg.getDialogPane().setContent(ta);
+                dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+                dlg.showAndWait();
+            }),
+            err -> javafx.application.Platform.runLater(() -> statusLabel.setText("AI error: " + err))
+        );
+    }
+
+    /** Prompt user for a string with a text input dialog. Returns null if cancelled or blank. */
+    private String promptUser(String title, String question) {
+        TextInputDialog td = new TextInputDialog();
+        td.setTitle(title);
+        td.setHeaderText(question);
+        td.setContentText("Prompt:");
+        Optional<String> r = td.showAndWait();
+        return r.map(String::strip).filter(s -> !s.isEmpty()).orElse(null);
+    }
+
+    /** Let the user enter or update their Gemini API key. */
+    private void showSetKeyDialog() {
+        String existing = geminiModule.resolveKey();
+        TextInputDialog td = new TextInputDialog(existing != null ? existing : "");
+        td.setTitle("Gemini API Key");
+        td.setHeaderText("Enter your Google Gemini API key.\n" +
+            "It will be saved to ~/.config/htmleditor/gemini.key");
+        td.setContentText("API Key:");
+        td.showAndWait().map(String::strip).filter(s -> !s.isEmpty()).ifPresent(key -> {
+            try {
+                geminiModule.saveKey(key);
+                statusLabel.setText("API key saved ✅");
+            } catch (java.io.IOException ex) {
+                statusLabel.setText("Failed to save key: " + ex.getMessage());
+            }
+        });
+    }
+
+    // =========================================================================
     // Keyboard shortcut helpers
     // =========================================================================
 
@@ -659,3 +1030,4 @@ public class UIController {
 
     private record Tooling(MenuBar menuBar, ToolBar toolBar, HBox optionStrip) {}
 }
+
