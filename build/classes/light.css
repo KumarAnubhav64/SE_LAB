@@ -1,0 +1,112 @@
+.root {
+    -fx-base: #f5f7fb;
+    -fx-background-color: linear-gradient(to bottom, #fbfcff, #eef2f8);
+    -fx-control-inner-background: white;
+    -fx-accent: #1f6feb;
+    -fx-focus-color: #1f6feb;
+    -fx-faint-focus-color: rgba(31, 111, 235, 0.18);
+    -fx-text-fill: #1e293b;
+    -fx-font-family: "Inter", "Segoe UI", sans-serif;
+    -fx-font-size: 13px;
+}
+
+.menu-bar,
+.tool-bar,
+.option-bar,
+.top-section {
+    -fx-background-color: #f8faff;
+    -fx-border-color: rgba(15, 23, 42, 0.08);
+    -fx-border-width: 0 0 1 0;
+}
+
+.header-label {
+    -fx-padding: 8 10 4 10;
+    -fx-text-fill: #475569;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+}
+
+.status-bar {
+    -fx-padding: 8 10 8 10;
+    -fx-background-color: rgba(248, 250, 255, 0.96);
+    -fx-text-fill: #334155;
+    -fx-border-color: rgba(15, 23, 42, 0.08);
+    -fx-border-width: 1 0 0 0;
+}
+
+.button {
+    -fx-background-radius: 8;
+    -fx-background-color: #e7edf7;
+    -fx-text-fill: #0f172a;
+    -fx-padding: 7 12 7 12;
+    -fx-cursor: hand;
+    -fx-border-color: rgba(15, 23, 42, 0.08);
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+}
+
+.button:hover {
+    -fx-background-color: #dce6f4;
+}
+
+.button:pressed {
+    -fx-background-color: #c7d6ea;
+}
+
+.button:focused {
+    -fx-border-color: rgba(31, 111, 235, 0.55);
+}
+
+.text-area {
+    -fx-control-inner-background: white;
+    -fx-text-fill: #0f172a;
+    -fx-highlight-fill: rgba(31, 111, 235, 0.20);
+    -fx-highlight-text-fill: #0f172a;
+    -fx-font-family: "JetBrains Mono", "Consolas", monospace;
+    -fx-font-size: 13px;
+    -fx-background-color: white;
+    -fx-background-insets: 0;
+    -fx-border-color: rgba(15, 23, 42, 0.10);
+    -fx-border-width: 1;
+}
+
+.tab-pane {
+    -fx-background-color: transparent;
+    -fx-tab-min-width: 110px;
+}
+
+.tab-pane > .tab-content-area {
+    -fx-background-color: rgba(255, 255, 255, 0.92);
+    -fx-border-color: rgba(15, 23, 42, 0.08);
+    -fx-border-width: 1 0 0 0;
+}
+
+.tab .tab-label {
+    -fx-text-fill: #0f172a;
+    -fx-font-weight: 600;
+}
+
+.combo-box,
+.spinner,
+.spinner .text-field {
+    -fx-background-color: white;
+    -fx-text-fill: #0f172a;
+    -fx-background-radius: 8;
+    -fx-border-color: rgba(15, 23, 42, 0.10);
+    -fx-border-radius: 8;
+}
+
+.split-pane {
+    -fx-background-color: transparent;
+}
+
+.split-pane-divider {
+    -fx-background-color: rgba(31, 111, 235, 0.24);
+    -fx-padding: 0 1 0 1;
+}
+
+.web-view {
+    -fx-background-color: #fbfcff;
+    -fx-border-color: rgba(15, 23, 42, 0.10);
+    -fx-border-width: 1;
+}

@@ -1,0 +1,139 @@
+.root {
+    -fx-base: #1f2329;
+    -fx-background-color: linear-gradient(to bottom, #23272f, #181b20);
+    -fx-control-inner-background: #2b313a;
+    -fx-accent: #5aa9ff;
+    -fx-focus-color: #5aa9ff;
+    -fx-faint-focus-color: rgba(90, 169, 255, 0.18);
+    -fx-text-fill: #eef2f7;
+    -fx-font-family: "Inter", "Segoe UI", sans-serif;
+    -fx-font-size: 13px;
+}
+
+.menu-bar,
+.tool-bar,
+.option-bar,
+.top-section {
+    -fx-background-color: #242931;
+    -fx-border-color: rgba(255, 255, 255, 0.06);
+    -fx-border-width: 0 0 1 0;
+}
+
+.header-label {
+    -fx-padding: 8 10 4 10;
+    -fx-text-fill: #cfd7e3;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+}
+
+.status-bar {
+    -fx-padding: 8 10 8 10;
+    -fx-background-color: rgba(36, 41, 49, 0.96);
+    -fx-text-fill: #d9e3ef;
+    -fx-border-color: rgba(255, 255, 255, 0.06);
+    -fx-border-width: 1 0 0 0;
+}
+
+.editor-toolbar .button,
+.menu-bar .menu-button,
+.option-bar .label,
+.option-bar .combo-box,
+.option-bar .spinner,
+.status-bar {
+    -fx-background-radius: 8;
+}
+
+.button {
+    -fx-background-radius: 8;
+    -fx-background-color: #303844;
+    -fx-text-fill: #eef2f7;
+    -fx-padding: 7 12 7 12;
+    -fx-cursor: hand;
+    -fx-border-color: rgba(255, 255, 255, 0.06);
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+}
+
+.button:hover {
+    -fx-background-color: #384150;
+}
+
+.button:pressed {
+    -fx-background-color: #4c5a70;
+}
+
+.button:focused {
+    -fx-border-color: rgba(90, 169, 255, 0.55);
+}
+
+.text-area {
+    -fx-control-inner-background: #1f242b;
+    -fx-text-fill: #eef2f7;
+    -fx-highlight-fill: rgba(90, 169, 255, 0.35);
+    -fx-highlight-text-fill: white;
+    -fx-font-family: "JetBrains Mono", "Consolas", monospace;
+    -fx-font-size: 13px;
+    -fx-background-color: #1f242b;
+    -fx-background-insets: 0;
+    -fx-border-color: rgba(255, 255, 255, 0.08);
+    -fx-border-width: 1;
+}
+
+.tab-pane {
+    -fx-background-color: transparent;
+    -fx-tab-min-width: 110px;
+}
+
+.tab-pane > .tab-content-area {
+    -fx-background-color: rgba(28, 33, 40, 0.88);
+    -fx-border-color: rgba(255, 255, 255, 0.06);
+    -fx-border-width: 1 0 0 0;
+}
+
+.tab {
+    -fx-background-insets: 0;
+}
+
+.tab .tab-label {
+    -fx-text-fill: #e3e8f0;
+    -fx-font-weight: 600;
+}
+
+.tab-pane .tab-header-area {
+    -fx-padding: 0 0 0 8;
+}
+
+.combo-box,
+.spinner,
+.spinner .text-field {
+    -fx-background-color: #2c333d;
+    -fx-text-fill: #eef2f7;
+    -fx-background-radius: 8;
+    -fx-border-color: rgba(255, 255, 255, 0.08);
+    -fx-border-radius: 8;
+}
+
+.spinner .increment-arrow-button,
+.spinner .decrement-arrow-button {
+    -fx-background-color: #39424f;
+}
+
+.tool-bar,
+.menu-bar {
+    -fx-padding: 6 8 6 8;
+}
+
+.split-pane {
+    -fx-background-color: transparent;
+}
+
+.split-pane-divider {
+    -fx-background-color: rgba(90, 169, 255, 0.32);
+    -fx-padding: 0 1 0 1;
+}
+
+.web-view {
+    -fx-background-color: #f7f8fb;
+    -fx-border-color: rgba(255, 255, 255, 0.08);
+    -fx-border-width: 1;
+}
