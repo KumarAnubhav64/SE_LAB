@@ -4,7 +4,6 @@
 This project is a modern JavaFX-based HTML document editor that supports:
 - Multi-tab editing with robust CodeMirror 5 syntax highlighting
 - AI-Powered Assistant (powered by Google Gemini) for HTML generation and fixing
-- Integrated Git version control
 - Live side-by-side rendering preview
 - Structural HTML validation
 - Find & Replace functionality
@@ -26,7 +25,6 @@ src/
         SyntaxEditor.java
         FindReplaceModule.java
         GeminiModule.java
-        GitModule.java
         ParserModule.java
         PreviewModule.java
         FileModule.java
@@ -71,9 +69,6 @@ DOCUMENTATION.md
 - Lightweight async HTTP client interfacing with Google's Gemini REST API.
 - Implements prompt libraries for structured HTML generation, bug fixing, and semantic improvement.
 
-### GitModule.java (Version Control)
-- Provides rudimentary integration with the local `.git` repository, allowing users to stage, review changes, and commit directly from the editor.
-
 ### ParserModule.java (Parser Module)
 - Performs structural HTML tag validation.
 - Detects mismatched and unexpected closing tags.
@@ -105,7 +100,7 @@ DOCUMENTATION.md
 
 - Editing, formatting, interaction: implemented in EditorModule, SyntaxEditor, FindReplaceModule, + UIController.
 - Parsing + rendering: implemented in ParserModule + PreviewModule.
-- File and versioning: implemented in FileModule + GitModule.
+- File operations: implemented in FileModule.
 - AI Assistant: implemented via GeminiModule.
 - Stats + display: implemented in StatisticsModule + UIController status bar.
 - Tab management: implemented in TabManager.
@@ -122,7 +117,6 @@ We use Gradle via the provided `gradlew` wrapper to streamline dependency manage
 3. Type HTML or interact with the AI side panel (click "AI Assistant" on the right sidebar).
 4. Use formatting tools in the top toolbar to structure documents.
 5. Search with `Ctrl+F` using Find & Replace.
-6. Commit changes via the Git button in the top menu.
 
 ## 6. Build and Testing
 
