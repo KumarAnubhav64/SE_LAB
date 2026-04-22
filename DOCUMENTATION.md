@@ -1,16 +1,17 @@
 # HTML Document Editor - Project Documentation
 
 ## 1. Overview
-This project is a JavaFX-based HTML document editor that supports:
-- Multi-tab editing
-- Live preview
-- HTML validation
-- Text formatting tools
-- Plain-text to processed HTML transformation with fixed line width and optional justification
+This project is a modern JavaFX-based HTML document editor that supports:
+- Multi-tab editing with robust CodeMirror 5 syntax highlighting
+- AI-Powered Assistant (powered by Google Gemini) for HTML generation and fixing
+- Integrated Git version control
+- Live side-by-side rendering preview
+- Structural HTML validation
+- Find & Replace functionality
+- Text formatting tools and plain-text to processed HTML transformation
 - File operations (open, save, import text, import image)
-- Statistics (characters, words, lines, paragraphs, tags)
-- Theme switching
-- Build and release packaging to AppImage
+- Document statistics and dynamic UI theme switching (dark/light)
+- Build and release packaging to zero-dependency AppImages
 
 ## 2. Structured Folder Layout
 
@@ -22,6 +23,10 @@ src/
         HtmlEditorFX.java
         UIController.java
         EditorModule.java
+        SyntaxEditor.java
+        FindReplaceModule.java
+        GeminiModule.java
+        GitModule.java
         ParserModule.java
         PreviewModule.java
         FileModule.java
@@ -31,10 +36,16 @@ src/
     resources/
       dark.css
       light.css
+      icon.png
+      codemirror/
+        lib/codemirror.js
+        lib/codemirror.css
+        ... (and language modes)
 build.sh
 appimage.sh
 release.sh
 DOCUMENTATION.md
+.gitignore
 ```
 
 ## 3. Module Responsibilities
@@ -44,23 +55,24 @@ DOCUMENTATION.md
 - Starts application and delegates initialization to UIController.
 
 ### UIController.java (UI Module)
-- Builds and wires UI components.
-- Connects toolbar and menu actions to modules.
-- Hosts controls for:
-  - Line width (1-132)
-  - Paragraph indent
-  - Justification mode (LEFT/JUSTIFY)
-  - Font size application
+- Builds and wires the modern JavaFX UI layout.
+- Connects toolbar, menu actions, and the collapsible AI side panel.
+- Hosts controls for line-width, paragraph indent, justification, and font size.
 
-### EditorModule.java (Editor Module)
-- Applies HTML tags to selected text or inserts tags at cursor.
-- Supports formatting tags: bold, italic, underline, superscript, subscript.
-- Applies font size using span style.
-- Implements auto-indentation on Enter key.
-- Implements plain-text processing to HTML with:
-  - Fixed line width
-  - Optional full justification
-  - First-line paragraph indentation
+### EditorModule.java & SyntaxEditor.java (Editor Layer)
+- `SyntaxEditor` wraps a JavaFX WebView to run CodeMirror 5, providing professional HTML syntax highlighting, theming, and line numbers.
+- `EditorModule` interfaces with the syntax editor to apply HTML tags to selected text, insert formatting tags (bold, italic, underline, superscript, subscript), and apply fonts.
+- Implements plain-text processing to HTML with fixed line width and justification.
+
+### FindReplaceModule.java (Search Module)
+- Provides an integrated dialog/bar for searching and replacing text throughout the active CodeMirror editor bounds.
+
+### GeminiModule.java (AI Assistant)
+- Lightweight async HTTP client interfacing with Google's Gemini REST API.
+- Implements prompt libraries for structured HTML generation, bug fixing, and semantic improvement.
+
+### GitModule.java (Version Control)
+- Provides rudimentary integration with the local `.git` repository, allowing users to stage, review changes, and commit directly from the editor.
 
 ### ParserModule.java (Parser Module)
 - Performs structural HTML tag validation.
@@ -68,7 +80,7 @@ DOCUMENTATION.md
 - Handles standard void tags.
 
 ### PreviewModule.java (Preview Module)
-- Renders current HTML into WebView.
+- Renders current HTML into a seamless split-pane WebView.
 - Shows validation warning banner when parser reports issues.
 
 ### FileModule.java (File Module)
@@ -78,12 +90,7 @@ DOCUMENTATION.md
 - Import image file into current tab by inserting an HTML img tag.
 
 ### StatisticsModule.java (Statistics Module)
-- Computes and formats metrics:
-  - Words
-  - Lines
-  - Characters
-  - Paragraphs
-  - Tag count
+- Computes and formats metrics: Words, Lines, Characters, Paragraphs, Tag count.
 
 ### TabManager.java (Tab Management)
 - Creates and tracks editor tabs.
@@ -91,115 +98,46 @@ DOCUMENTATION.md
 - Keeps live preview synchronized with editor text updates.
 
 ### ThemeManager.java (Theme Management)
-- Applies dark/light stylesheet resources.
+- Applies dark/light stylesheet resources across both the JavaFX and CodeMirror environments.
 - Toggles theme at runtime.
 
-## 4. Feature Coverage (SRS Mapping)
+## 4. Feature Coverage
 
-- FR1/FR2/FR7 (Editing, formatting, interaction): implemented in EditorModule + UIController.
-- FR3 (Parsing + rendering): implemented in ParserModule + PreviewModule.
-- FR4/FR5 (Open/save/import): implemented in FileModule.
-- FR6/FR10 (Stats + display): implemented in StatisticsModule + UIController status bar.
-- FR8 (Tab management): implemented in TabManager.
-- FR9 (Theme management): implemented in ThemeManager.
-
-Additional SRS points now covered:
-- User-configurable line width between 1 and 132.
-- Paragraph processing with optional full justification.
-- Configurable first-line indentation.
-- Superscript/subscript formatting.
-- Font size formatting.
-- Paragraph count in statistics.
-- Image import support (predefined image formats).
+- Editing, formatting, interaction: implemented in EditorModule, SyntaxEditor, FindReplaceModule, + UIController.
+- Parsing + rendering: implemented in ParserModule + PreviewModule.
+- File and versioning: implemented in FileModule + GitModule.
+- AI Assistant: implemented via GeminiModule.
+- Stats + display: implemented in StatisticsModule + UIController status bar.
+- Tab management: implemented in TabManager.
+- Theme management: implemented in ThemeManager.
 
 ## 5. How to Use
 
 1. Start app with local build output:
-   - Run ./build.sh
-   - Run build/output/HtmlEditorFX/bin/HtmlEditorFX
-2. Open or create a tab.
-3. Type HTML or import text.
-4. Use toolbar formatting buttons.
-5. Use Process Text for plain text transformation.
-6. Use Validate and Stats buttons.
-7. Use File menu for:
-   - New Tab
-   - Open
-   - Save
-   - Import Text
-   - Import Image
-
-## 5.1 UI Experience
-
-The interface is arranged to reduce friction for first-time use:
-- The top area groups file actions, editing tools, and transformation controls.
-- The center workspace is a split editor/preview layout.
-- The bottom status bar shows the latest action or validation result.
-- Tooltips explain the purpose of each formatting button.
-- Keyboard shortcuts are available for faster navigation:
-  - Ctrl+N new tab
-  - Ctrl+O open
-  - Ctrl+S save
-  - Ctrl+I import text
-  - Ctrl+Shift+I import image
-  - Ctrl+R validate
-  - Ctrl+G statistics
-  - Ctrl+P process text
-  - Ctrl+T toggle theme
-
-The editor also shows a placeholder hint when a tab is empty.
+   - Run `./build.sh`
+   - Run `./build/output/HtmlEditorFX/bin/HtmlEditorFX`
+2. Open or create a new tab (`Ctrl+N`).
+3. Type HTML or interact with the AI side panel (click "AI Assistant" on the right sidebar).
+4. Use formatting tools in the top toolbar to structure documents.
+5. Search with `Ctrl+F` using Find & Replace.
+6. Commit changes via the Git button in the top menu.
 
 ## 6. Build and Packaging Scripts
 
 ### build.sh
-- Compiles sources from src/main/java.
-- Copies resources from src/main/resources.
-- Creates app.jar.
-- Builds a jpackage app-image in build/output/HtmlEditorFX.
+- Compiles sources from `src/main/java`.
+- Copies resources and fully vendors CodeMirror from `src/main/resources`.
+- Creates `app.jar`.
+- Builds a jpackage app-image, requiring JDK crypto and HTTP modules for the Gemini API SSL connections.
 
 ### appimage.sh
 - Uses jpackage output to create AppDir.
 - Injects AppRun and desktop entry.
-- Uses appimagetool to generate AppImage.
-- Optional argument: destination directory for output AppImage.
-
-Usage:
-
-```bash
-./appimage.sh
-./appimage.sh release/my-release-folder
-```
+- Uses appimagetool to generate an AppImage.
 
 ### release.sh
 - Generates timestamped release folder.
-- Runs build.sh.
-- Runs appimage.sh with release destination.
-- Produces final AppImage under release/HtmlEditorFX-<timestamp>/.
+- Runs build.sh & appimage.sh. Produces final deployable AppImage.
 
-## 7. Image Import Details
-- Supported import filter formats:
-  - png
-  - jpg
-  - jpeg
-  - gif
-  - webp
-  - bmp
-- Inserted syntax example:
-
-```html
-<img src="file:///absolute/path/to/image.png" alt="image.png" />
-```
-
-## 8. Runtime Notes
-- If src/main/resources/icon.png is missing, packaging uses a placeholder icon.
-- AppImage build may show AppStream metadata warning; this does not block output generation.
-
-## 9. Verification Performed
-- Compilation succeeds via build.sh.
-- AppImage packaging succeeds via release.sh.
-- Versioned AppImage artifacts generated under release/.
-
-## 10. Future Improvements
-- Add dedicated app metadata file for AppStream compliance.
-- Add unit tests for line-justification and parser edge cases.
-- Add optional relative-path image embedding strategy for portability.
+## 7. Configuration
+- To use the AI Assistant, export `GEMINI_API_KEY` into your shell prior to launch or place it in `~/.config/htmleditor/gemini.key`.

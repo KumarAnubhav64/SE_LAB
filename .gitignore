@@ -1,0 +1,28 @@
+# Compiled class file
+*.class
+*.jar
+*.war
+*.ear
+
+# Log file
+*.log
+hs_err_pid*
+
+# Build and release artifacts
+build/
+release/
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+*.iws
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
