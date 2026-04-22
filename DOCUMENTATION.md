@@ -113,31 +113,30 @@ DOCUMENTATION.md
 
 ## 5. How to Use
 
-1. Start app with local build output:
-   - Run `./build.sh`
-   - Run `./build/output/HtmlEditorFX/bin/HtmlEditorFX`
+We use Gradle via the provided `gradlew` wrapper to streamline dependency management, building, and running.
+
+1. **Start the app via Gradle:**
+   - Run `./gradlew run`
+
 2. Open or create a new tab (`Ctrl+N`).
 3. Type HTML or interact with the AI side panel (click "AI Assistant" on the right sidebar).
 4. Use formatting tools in the top toolbar to structure documents.
 5. Search with `Ctrl+F` using Find & Replace.
 6. Commit changes via the Git button in the top menu.
 
-## 6. Build and Packaging Scripts
+## 6. Build and Testing
 
-### build.sh
-- Compiles sources from `src/main/java`.
-- Copies resources and fully vendors CodeMirror from `src/main/resources`.
-- Creates `app.jar`.
-- Builds a jpackage app-image, requiring JDK crypto and HTTP modules for the Gemini API SSL connections.
+### Gradle Wrapper (`gradlew`)
+- **Compile and Run:** `./gradlew run`
+- **Run Test Suites:** `./gradlew test` (Tests exist for parser logic, statistics calculation, and stubbed interfaces for UI controllers)
+- **Assemble Output:** `./gradlew build`
 
-### appimage.sh
-- Uses jpackage output to create AppDir.
-- Injects AppRun and desktop entry.
-- Uses appimagetool to generate an AppImage.
+### Legacy Packaging Scripts (Optional)
+If you require creating an AppImage for Linux distribution, the legacy `.sh` scripts are still maintained:
 
-### release.sh
-- Generates timestamped release folder.
-- Runs build.sh & appimage.sh. Produces final deployable AppImage.
+- **build.sh**: Compiles raw sources manually and vendors CodeMirror. Builds a jpackage app-image.
+- **appimage.sh**: Uses jpackage output to create an AppImage.
+- **release.sh**: Generates timestamped release folder with the final deployable AppImage.
 
 ## 7. Configuration
 - To use the AI Assistant, export `GEMINI_API_KEY` into your shell prior to launch or place it in `~/.config/htmleditor/gemini.key`.

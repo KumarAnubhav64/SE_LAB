@@ -12,8 +12,13 @@ import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.List;
+import java.util.ArrayList;
+import javafx.application.Platform;
 
 public class UIController {
 
@@ -54,7 +59,9 @@ public class UIController {
 
     // =========================================================================
     public void init(Stage stage) {
-        tabManager.createNewTab();
+        if (!loadSession()) {
+            tabManager.createNewTab();
+        }
 
         paragraphMode.setValue(EditorModule.ParagraphMode.JUSTIFY);
         widthSpinner.setEditable(true);
@@ -112,7 +119,79 @@ public class UIController {
         stage.setScene(scene);
         stage.setTitle("HTML Document Editor");
         stage.setMaximized(true);
+
+        stage.setOnCloseRequest(ev -> {
+            if (tabManager.hasUnsavedTabs()) {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setTitle("Unsaved Changes");
+                alert.setHeaderText("You have unsaved changes.");
+                alert.setContentText("Are you sure you want to exit without saving?");
+                Optional<ButtonType> choice = alert.showAndWait();
+                if (choice.isEmpty() || choice.get() != ButtonType.OK) {
+                    ev.consume();
+                    return;
+                }
+            }
+            saveSession();
+        });
+
         stage.show();
+    }
+
+    private Path getSessionFile() {
+        Path dir = Path.of(System.getProperty("user.home"), ".config", "htmleditor");
+        try { Files.createDirectories(dir); } catch (IOException ignored) {}
+        return dir.resolve("session.txt");
+    }
+
+    private boolean loadSession() {
+        Path sessionFile = getSessionFile();
+        if (!Files.exists(sessionFile)) return false;
+        
+        try {
+            List<String> lines = Files.readAllLines(sessionFile);
+            if (lines.isEmpty()) return false;
+            
+            int activeIndex = 0;
+            boolean loadedAny = false;
+            
+            for (String line : lines) {
+                if (line.startsWith("ACTIVE:")) {
+                    try { activeIndex = Integer.parseInt(line.substring(7)); } catch (Exception ignored) {}
+                } else if (line.startsWith("GITDIR:") && line.length() > 7) {
+                    Path dir = Path.of(line.substring(7));
+                    if (Files.isDirectory(dir)) {
+                        gitWorkDir = dir;
+                    }
+                } else if (!line.isBlank()) {
+                    Path file = Path.of(line);
+                    if (Files.exists(file)) {
+                        fileModule.openPathInTab(file, tabManager, statusLabel);
+                        loadedAny = true;
+                    }
+                }
+            }
+            
+            if (loadedAny) {
+                tabManager.setActiveTabIndex(activeIndex);
+                return true;
+            }
+        } catch (IOException ignored) {}
+        return false;
+    }
+
+    private void saveSession() {
+        try {
+            List<String> lines = new ArrayList<>();
+            for (Path p : tabManager.getOpenFilePaths()) {
+                lines.add(p.toAbsolutePath().toString());
+            }
+            lines.add("ACTIVE:" + tabManager.getActiveTabIndex());
+            if (gitWorkDir != null) {
+                lines.add("GITDIR:" + gitWorkDir.toAbsolutePath().toString());
+            }
+            Files.write(getSessionFile(), lines);
+        } catch (IOException ignored) {}
     }
 
     // =========================================================================

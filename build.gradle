@@ -1,0 +1,40 @@
+plugins {
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // JUnit Jupiter for testing
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    
+    // TestFX for JavaFX UI testing
+    testImplementation 'org.testfx:testfx-core:4.0.18'
+    testImplementation 'org.testfx:testfx-junit5:4.0.18'
+}
+
+javafx {
+    version = "17.0.6"
+    modules = [ 'javafx.controls', 'javafx.web' ]
+}
+
+application {
+    mainClass = 'editor.HtmlEditorFX'
+    // Optional: add VM args if needed for TestFX headless, etc., but usually tests configure that per task.
+}
+
+test {
+    useJUnitPlatform()
+    
+    // Set system properties for TestFX to run headless in CI/headless environments
+    systemProperty 'testfx.robot', 'glass'
+    systemProperty 'testfx.headless', 'true'
+    systemProperty 'prism.order', 'sw'
+    systemProperty 'prism.text', 't2k'
+    systemProperty 'java.awt.headless', 'true'
+}

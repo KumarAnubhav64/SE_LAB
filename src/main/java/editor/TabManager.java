@@ -13,6 +13,8 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class TabManager {
 
@@ -191,6 +193,28 @@ public class TabManager {
         String html = state.editor.getText();
         ParserModule.ValidationResult result = parserModule.validateHtml(html);
         previewModule.render(state.preview, html, result);
+    }
+
+    public List<Path> getOpenFilePaths() {
+        return tabPane.getTabs().stream()
+                .map(tab -> tabState.get(tab))
+                .filter(state -> state != null && state.filePath != null)
+                .map(state -> state.filePath)
+                .collect(Collectors.toList());
+    }
+
+    public boolean hasUnsavedTabs() {
+        return tabState.values().stream().anyMatch(state -> state.dirty);
+    }
+
+    public int getActiveTabIndex() {
+        return tabPane.getSelectionModel().getSelectedIndex();
+    }
+
+    public void setActiveTabIndex(int index) {
+        if (index >= 0 && index < tabPane.getTabs().size()) {
+            tabPane.getSelectionModel().select(index);
+        }
     }
 
     // -------------------------------------------------------------------------
