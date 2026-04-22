@@ -337,12 +337,12 @@ public class UIController {
         findReplace.setOnAction(e ->
                 findReplaceModule.showDialog(tabManager.getCurrentEditor()));
         undoItem.setOnAction(e -> {
-            TextArea ed = tabManager.getCurrentEditor();
-            if (ed != null) ed.undo();
+            SyntaxEditor ed = tabManager.getCurrentEditor();
+            if (ed != null) ed.execJS("editor.undo()");
         });
         redoItem.setOnAction(e -> {
-            TextArea ed = tabManager.getCurrentEditor();
-            if (ed != null) ed.redo();
+            SyntaxEditor ed = tabManager.getCurrentEditor();
+            if (ed != null) ed.execJS("editor.redo()");
         });
 
         editMenu.getItems().addAll(undoItem, redoItem, new SeparatorMenuItem(), findReplace);
@@ -524,8 +524,8 @@ public class UIController {
     private Button createUndoButton() {
         Button btn = new Button("Undo");
         btn.setOnAction(e -> {
-            TextArea ed = tabManager.getCurrentEditor();
-            if (ed != null) ed.undo();
+            SyntaxEditor ed = tabManager.getCurrentEditor();
+            if (ed != null) ed.execJS("editor.undo()");
         });
         return btn;
     }
@@ -533,8 +533,8 @@ public class UIController {
     private Button createRedoButton() {
         Button btn = new Button("Redo");
         btn.setOnAction(e -> {
-            TextArea ed = tabManager.getCurrentEditor();
-            if (ed != null) ed.redo();
+            SyntaxEditor ed = tabManager.getCurrentEditor();
+            if (ed != null) ed.execJS("editor.redo()");
         });
         return btn;
     }

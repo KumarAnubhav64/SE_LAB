@@ -8,16 +8,20 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
- * FindReplaceModule provides a persistent Find & Replace dialog.
- * It operates directly on the TextArea of the active editor tab.
+ * FindReplaceModule — works with the SyntaxEditor (CodeMirror WebView).
+ *
+ * <p>Find / replace is performed on the raw text retrieved via
+ * {@link SyntaxEditor#getText()}, then pushed back via
+ * {@link SyntaxEditor#updateText(String)}.  The selection is highlighted
+ * by injecting a CodeMirror JS call.</p>
  */
 public class FindReplaceModule {
 
     private int    lastFindIndex = -1;
     private String lastQuery     = null;
 
-    /** Open (or re-open) the Find & Replace dialog for the given TextArea. */
-    public void showDialog(TextArea editor) {
+    /** Open (or re-open) the Find & Replace dialog for the given SyntaxEditor. */
+    public void showDialog(SyntaxEditor editor) {
         if (editor == null) return;
 
         Dialog<ButtonType> dialog = buildDialog();
@@ -52,10 +56,8 @@ public class FindReplaceModule {
 
             if (action == findNextBT) {
                 findNext(editor, query, caseSens);
-
             } else if (action == replaceBT) {
                 replaceCurrent(editor, query, replacement, caseSens);
-
             } else if (action == replaceAllBT) {
                 replaceAll(editor, query, replacement, caseSens);
                 break;
@@ -64,10 +66,10 @@ public class FindReplaceModule {
     }
 
     // -------------------------------------------------------------------------
-    // Private helpers
+    // Private helpers (operate on plain text, push back via SyntaxEditor API)
     // -------------------------------------------------------------------------
 
-    private void findNext(TextArea editor, String query, boolean caseSens) {
+    private void findNext(SyntaxEditor editor, String query, boolean caseSens) {
         String text        = editor.getText();
         String searchText  = caseSens ? text  : text.toLowerCase();
         String searchQuery = caseSens ? query : query.toLowerCase();
@@ -81,30 +83,33 @@ public class FindReplaceModule {
 
         if (idx >= 0) {
             lastFindIndex = idx;
-            editor.selectRange(idx, idx + query.length());
-            editor.requestFocus();
+            highlightInEditor(editor, text, idx, idx + query.length());
         } else {
             lastFindIndex = -1;
             alert("\"" + query + "\" not found.");
         }
     }
 
-    private void replaceCurrent(TextArea editor, String query, String replacement, boolean caseSens) {
-        String sel     = editor.getSelectedText();
-        String cmpSel  = caseSens ? sel  : sel.toLowerCase();
-        String cmpQ    = caseSens ? query : query.toLowerCase();
+    private void replaceCurrent(SyntaxEditor editor, String query, String replacement, boolean caseSens) {
+        String text  = editor.getText();
+        // Figure out what's currently highlighted
+        int startFrom = lastFindIndex >= 0 ? lastFindIndex : 0;
+        String searchText  = caseSens ? text  : text.toLowerCase();
+        String searchQuery = caseSens ? query : query.toLowerCase();
 
-        if (cmpSel.equals(cmpQ)) {
-            editor.replaceSelection(replacement);
-            lastFindIndex = -1;
-        } else {
-            // Nothing selected that matches — find first occurrence
+        int idx = searchText.indexOf(searchQuery, startFrom);
+        if (idx < 0) {
             findNext(editor, query, caseSens);
+            return;
         }
+        // Replace the hit
+        String newText = text.substring(0, idx) + replacement + text.substring(idx + query.length());
+        editor.updateText(newText);
+        lastFindIndex = -1;
     }
 
-    private void replaceAll(TextArea editor, String query, String replacement, boolean caseSens) {
-        String text   = editor.getText();
+    private void replaceAll(SyntaxEditor editor, String query, String replacement, boolean caseSens) {
+        String text = editor.getText();
         String result;
         if (caseSens) {
             result = text.replace(query, replacement);
@@ -113,9 +118,25 @@ public class FindReplaceModule {
                     "(?i)" + Pattern.quote(query),
                     java.util.regex.Matcher.quoteReplacement(replacement));
         }
-        editor.setText(result);
+        editor.updateText(result);
         lastFindIndex = -1;
         alert("Replace All complete.");
+    }
+
+    /**
+     * Highlight the matched range in CodeMirror.
+     * Converts a flat char offset to {line, ch} via JS.
+     */
+    private void highlightInEditor(SyntaxEditor editor, String text, int start, int end) {
+        editor.execJS(
+            "(function() {" +
+            "  var doc = editor.getDoc();" +
+            "  var from = doc.posFromIndex(" + start + ");" +
+            "  var to   = doc.posFromIndex(" + end   + ");" +
+            "  editor.setSelection(from, to, {scroll: true});" +
+            "  editor.focus();" +
+            "})()"
+        );
     }
 
     private void alert(String msg) {

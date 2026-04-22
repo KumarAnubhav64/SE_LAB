@@ -5,7 +5,6 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
-import javafx.scene.control.TextArea;
 import javafx.scene.web.WebView;
 import javafx.animation.PauseTransition;
 import javafx.util.Duration;
@@ -42,12 +41,10 @@ public class TabManager {
     }
 
     public Tab createNewTab(String initialContent) {
-        TextArea editor  = new TextArea();
-        WebView  preview = new WebView();
-        PauseTransition previewDebounce = new PauseTransition(Duration.millis(140));
+        SyntaxEditor editor  = new SyntaxEditor();
+        WebView      preview = new WebView();
+        PauseTransition previewDebounce = new PauseTransition(Duration.millis(180));
 
-        editorModule.installAutoIndent(editor);
-        editor.setPromptText("Type HTML here, or use File > Import Text / Import Image");
         editor.setText(initialContent == null ? "" : initialContent);
 
         String baseTitle = "Untitled-" + untitledCounter++;
@@ -58,26 +55,25 @@ public class TabManager {
 
         // Live preview with debounce
         previewDebounce.setOnFinished(ev -> {
-            ParserModule.ValidationResult r = parserModule.validateHtml(editor.getText());
-            previewModule.render(preview, editor.getText(), r);
+            String html = editor.getText();
+            ParserModule.ValidationResult r = parserModule.validateHtml(html);
+            previewModule.render(preview, html, r);
         });
 
-        editor.textProperty().addListener((obs, oldText, newText) -> {
+        editor.setOnChange(() -> {
             previewDebounce.playFromStart();
-
-            // Mark dirty only after the initial load (skip if text hasn't changed)
-            if (!newText.equals(oldText)) {
-                if (!state.dirty) {
-                    state.dirty = true;
-                    updateTabTitle(tab, state);
-                }
+            if (!state.dirty) {
+                state.dirty = true;
+                updateTabTitle(tab, state);
             }
         });
 
-        ParserModule.ValidationResult r = parserModule.validateHtml(editor.getText());
-        previewModule.render(preview, editor.getText(), r);
+        // Initial render
+        String init = initialContent == null ? "" : initialContent;
+        ParserModule.ValidationResult r = parserModule.validateHtml(init);
+        previewModule.render(preview, init, r);
 
-        SplitPane split = new SplitPane(editor, preview);
+        SplitPane split = new SplitPane(editor.getView(), preview);
         split.setDividerPositions(0.5);
         split.setStyle("-fx-background-color: transparent;");
 
@@ -132,17 +128,16 @@ public class TabManager {
     // -------------------------------------------------------------------------
 
     public void toggleWordWrap() {
-        TextArea editor = getCurrentEditor();
-        if (editor != null) {
-            editor.setWrapText(!editor.isWrapText());
-        }
+        SyntaxEditor editor = getCurrentEditor();
+        if (editor != null) editor.toggleWordWrap();
     }
 
     // -------------------------------------------------------------------------
     // Accessors
     // -------------------------------------------------------------------------
 
-    public TextArea getCurrentEditor() {
+    /** Returns the SyntaxEditor for the current tab (or null). */
+    public SyntaxEditor getCurrentEditor() {
         EditorTabState state = getCurrentState();
         return state == null ? null : state.editor;
     }
@@ -153,22 +148,21 @@ public class TabManager {
     }
 
     public String getCurrentHtml() {
-        TextArea editor = getCurrentEditor();
+        SyntaxEditor editor = getCurrentEditor();
         return editor == null ? "" : editor.getText();
     }
 
     public void setCurrentText(String text) {
-        TextArea editor = getCurrentEditor();
+        SyntaxEditor editor = getCurrentEditor();
         if (editor == null) return;
         editor.setText(text == null ? "" : text);
         refreshCurrentPreview();
     }
 
     public void appendToCurrentText(String text) {
-        TextArea editor = getCurrentEditor();
+        SyntaxEditor editor = getCurrentEditor();
         if (editor == null || text == null || text.isEmpty()) return;
-        String prefix = editor.getText().isBlank() ? "" : "\n";
-        editor.appendText(prefix + text);
+        editor.appendText(text);
         refreshCurrentPreview();
     }
 
@@ -194,8 +188,9 @@ public class TabManager {
         EditorTabState state = getCurrentState();
         if (state == null) return;
         state.previewDebounce.stop();
-        ParserModule.ValidationResult result = parserModule.validateHtml(state.editor.getText());
-        previewModule.render(state.preview, state.editor.getText(), result);
+        String html = state.editor.getText();
+        ParserModule.ValidationResult result = parserModule.validateHtml(html);
+        previewModule.render(state.preview, html, result);
     }
 
     // -------------------------------------------------------------------------
@@ -219,17 +214,17 @@ public class TabManager {
     }
 
     // -------------------------------------------------------------------------
-    // Mutable inner class (replaces the old record — needs dirty field)
+    // Mutable inner class
     // -------------------------------------------------------------------------
 
     private static class EditorTabState {
-        final TextArea         editor;
+        final SyntaxEditor     editor;
         final WebView          preview;
         final PauseTransition  previewDebounce;
         Path                   filePath;
         boolean                dirty;
 
-        EditorTabState(TextArea editor, WebView preview,
+        EditorTabState(SyntaxEditor editor, WebView preview,
                        PauseTransition previewDebounce, Path filePath) {
             this.editor          = editor;
             this.preview         = preview;
