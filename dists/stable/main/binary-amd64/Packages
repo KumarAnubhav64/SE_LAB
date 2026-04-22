@@ -1,0 +1,16 @@
+Package: htmleditorfx
+Version: 1.0-1
+Architecture: amd64
+Maintainer: Unknown <developer@localhost>
+Installed-Size: 91919
+Depends: libasound2t64, libatomic1, libbrotli1, libbz2-1.0, libc6, libfreetype6, libgcc-s1, libgif7, libglib2.0-0t64, libgraphite2-3, libharfbuzz0b, libjpeg-turbo8, liblcms2-2, libpcre2-8-0, libpng16-16t64, libstdc++6, libx11-6, libxau6, libxcb1, libxdmcp6, libxext6, libxi6, libxrender1, libxtst6, xdg-utils, zlib1g
+Provides: htmleditorfx
+Filename: pool/main/htmleditorfx_1.0-1_amd64.deb
+Size: 22415292
+MD5sum: 6f2a448047119a845f8a7c572b7ba153
+SHA1: f2704e2ff7eec9adc62cf22f0fc46626cc867ea8
+SHA256: 0ece74c8b2e7e87499a53550971edf402650ab2de0a9bfc2d5f7b773287196dd
+Section: Development
+Priority: optional
+Description: A JavaFX based HTML Editor
+
