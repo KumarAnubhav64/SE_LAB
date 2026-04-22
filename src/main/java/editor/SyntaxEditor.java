@@ -109,13 +109,16 @@ public class SyntaxEditor {
 
     // ── Bridge injection ─────────────────────────────────────────────────────
 
+    // Strong reference to prevent Javascript from losing the bridge during Java GC
+    private final JavaBridge bridge = new JavaBridge();
+
     /**
      * Inject a Java object as {@code window.javaBridge} so the JS side
      * can call back into Java.  Must be called on the FX thread.
      */
     private void injectBridge() {
         JSObject win = (JSObject) engine.executeScript("window");
-        win.setMember("javaBridge", new JavaBridge());
+        win.setMember("javaBridge", bridge);
     }
 
     /** Called by CodeMirror JS callbacks. Must be public. */
