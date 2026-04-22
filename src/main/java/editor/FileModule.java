@@ -23,12 +23,28 @@ public class FileModule {
             String content = Files.readString(file.toPath(), StandardCharsets.UTF_8);
             tabManager.createNewTab(content);
             tabManager.setCurrentFilePath(file.toPath());
+            tabManager.markCurrentClean();          // freshly loaded → not dirty
             setStatus(status, "Opened: " + file.getName());
         } catch (IOException ex) {
             setStatus(status, "Error opening file: " + file.getName());
         }
     }
 
+    /** Open a known Path directly (used by the file tree sidebar). */
+    public void openPathInTab(Path path, TabManager tabManager, Label status) {
+        if (path == null) return;
+        try {
+            String content = Files.readString(path, StandardCharsets.UTF_8);
+            tabManager.createNewTab(content);
+            tabManager.setCurrentFilePath(path);
+            tabManager.markCurrentClean();
+            setStatus(status, "Opened: " + path.getFileName());
+        } catch (IOException ex) {
+            setStatus(status, "Error opening: " + path.getFileName());
+        }
+    }
+
+    /** Save to existing path, or prompt if none. */
     public void saveFile(Stage stage, TabManager tabManager, Label status) {
         if (!tabManager.hasTabs()) {
             setStatus(status, "No tab to save");
@@ -42,13 +58,23 @@ public class FileModule {
             return;
         }
 
-        try {
-            Files.writeString(file.toPath(), tabManager.getCurrentHtml(), StandardCharsets.UTF_8);
-            tabManager.setCurrentFilePath(file.toPath());
-            setStatus(status, "Saved: " + file.getName());
-        } catch (IOException ex) {
-            setStatus(status, "Error saving file: " + file.getName());
+        doWrite(file, tabManager, status);
+    }
+
+    /** Always prompt for location (Save As). */
+    public void saveAsFile(Stage stage, TabManager tabManager, Label status) {
+        if (!tabManager.hasTabs()) {
+            setStatus(status, "No tab to save");
+            return;
         }
+
+        File file = createSaveChooser().showSaveDialog(stage);
+        if (file == null) {
+            setStatus(status, "Save As cancelled");
+            return;
+        }
+
+        doWrite(file, tabManager, status);
     }
 
     public void importFile(Stage stage, TabManager tabManager, Label status) {
@@ -74,12 +100,25 @@ public class FileModule {
             return;
         }
 
-        String alt = escapeHtml(file.getName());
-        String uri = file.toURI().toString();
+        String alt      = escapeHtml(file.getName());
+        String uri      = file.toURI().toString();
         String imageTag = "<img src=\"" + uri + "\" alt=\"" + alt + "\" />";
 
         tabManager.appendToCurrentText(imageTag);
         setStatus(status, "Image imported: " + file.getName());
+    }
+
+    // -------------------------------------------------------------------------
+
+    private void doWrite(File file, TabManager tabManager, Label status) {
+        try {
+            Files.writeString(file.toPath(), tabManager.getCurrentHtml(), StandardCharsets.UTF_8);
+            tabManager.setCurrentFilePath(file.toPath());
+            tabManager.markCurrentClean();          // saved → clean
+            setStatus(status, "Saved: " + file.getName());
+        } catch (IOException ex) {
+            setStatus(status, "Error saving file: " + file.getName());
+        }
     }
 
     private FileChooser createOpenChooser() {
@@ -108,7 +147,8 @@ public class FileModule {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Import Image");
         chooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp", "*.bmp"),
+                new FileChooser.ExtensionFilter("Image Files",
+                        "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp", "*.bmp"),
                 new FileChooser.ExtensionFilter("All Files", "*.*")
         );
         return chooser;
@@ -121,9 +161,7 @@ public class FileModule {
     }
 
     private void setStatus(Label status, String message) {
-        if (status != null) {
-            status.setText(message);
-        }
+        if (status != null) status.setText(message);
     }
 
     private String escapeHtml(String value) {
