@@ -131,6 +131,30 @@ We use Gradle via the provided `gradlew` wrapper to streamline dependency manage
 - **Run Test Suites:** `./gradlew test` (Tests exist for parser logic, statistics calculation, and stubbed interfaces for UI controllers)
 - **Assemble Output:** `./gradlew build`
 
+### Deploying via APT Repository (Debian/Ubuntu)
+To make your application installable natively via `apt install htmleditorfx`, we have provided `.deb` build tools.
+
+1. **Build the `.deb` package**:
+   ```bash
+   ./build-deb.sh
+   ```
+   This compiles the Java application and uses `jpackage` to bundle a completely self-sustaining `.deb` into `build-deb/output/`.
+
+2. **Publish the APT Repository**:
+   ```bash
+   ./publish-apt.sh
+   ```
+   This organizes the `.deb` file into an `apt-repo` directory and generates standard metadata (like `Packages.gz` and `Release` files) via `dpkg-scanpackages`.
+
+3. **Host and Install**:
+   The current generated APT repository has been successfully pushed and deployed to the `gh-pages` root for this project. Anyone can now install the remote application!
+
+   ```bash
+   echo "deb [trusted=yes] https://KumarAnubhav64.github.io/SE_LAB stable main" | sudo tee /etc/apt/sources.list.d/htmleditorfx.list
+   sudo apt update
+   sudo apt install htmleditorfx
+   ```
+
 ### Legacy Packaging Scripts (Optional)
 If you require creating an AppImage for Linux distribution, the legacy `.sh` scripts are still maintained:
 

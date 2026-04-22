@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Editor</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; background: #1e1e2e; }
+  #editor-wrap { width: 100%; height: 100%; }
+
+  /* Override CM to fit parent fully */
+  .CodeMirror {
+    width: 100%;
+    height: 100%;
+    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", "Ubuntu Mono", monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    background: #1e1e2e !important;
+  }
+  .CodeMirror-scroll { height: 100%; }
+
+  /* Active line highlight */
+  .CodeMirror-activeline-background { background: #28283e !important; }
+
+  /* Selection */
+  .CodeMirror-selected { background: rgba(137,180,250,0.25) !important; }
+
+  /* Gutter */
+  .CodeMirror-gutters {
+    background: #181825 !important;
+    border-right: 1px solid #313244 !important;
+    min-width: 44px;
+  }
+  .CodeMirror-linenumber { color: #45475a !important; padding: 0 8px 0 4px; }
+
+  /* Dracula-like colours for HTML mixed mode */
+  .cm-s-dracula .cm-tag           { color: #f38ba8; }
+  .cm-s-dracula .cm-attribute     { color: #89dceb; }
+  .cm-s-dracula .cm-string        { color: #a6e3a1; }
+  .cm-s-dracula .cm-comment       { color: #6c7086; font-style: italic; }
+  .cm-s-dracula .cm-keyword       { color: #cba6f7; }
+  .cm-s-dracula .cm-property      { color: #89b4fa; }
+  .cm-s-dracula .cm-number        { color: #fab387; }
+  .cm-s-dracula .cm-atom          { color: #f5c2e7; }
+  .cm-s-dracula .cm-qualifier,
+  .cm-s-dracula .cm-builtin       { color: #89dceb; }
+  .cm-s-dracula .cm-def           { color: #89b4fa; }
+  .cm-s-dracula .cm-operator      { color: #89dceb; }
+  .cm-s-dracula .cm-meta          { color: #f9e2af; }
+  .cm-s-dracula .cm-bracket       { color: #cdd6f4; }
+  .cm-s-dracula .cm-variable      { color: #cdd6f4; }
+  .cm-s-dracula .cm-variable-2    { color: #89b4fa; }
+  /* Cursor */
+  .CodeMirror-cursor { border-left: 2px solid #89b4fa !important; }
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 7px; height: 7px; }
+  ::-webkit-scrollbar-track { background: #181825; }
+  ::-webkit-scrollbar-thumb { background: #45475a; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #6c7086; }
+</style>
+</head>
+<body>
+<div id="editor-wrap">
+  <textarea id="cm-host"></textarea>
+</div>
+
+<!-- Injected by Java at load time — all files are relative to getResource() -->
+<script src="CODEMIRROR_JS_PLACEHOLDER"></script>
+<script src="XML_JS_PLACEHOLDER"></script>
+<script src="JS_JS_PLACEHOLDER"></script>
+<script src="CSS_JS_PLACEHOLDER"></script>
+<script src="HTMLMIXED_JS_PLACEHOLDER"></script>
+<script src="MATCHBRACKETS_JS_PLACEHOLDER"></script>
+<script src="CLOSETAG_JS_PLACEHOLDER"></script>
+<script src="ACTIVELINE_JS_PLACEHOLDER"></script>
+<link rel="stylesheet" href="CODEMIRROR_CSS_PLACEHOLDER"/>
+<link rel="stylesheet" href="DRACULA_CSS_PLACEHOLDER"/>
+
+<script>
+var editor = CodeMirror.fromTextArea(document.getElementById('cm-host'), {
+  mode:            'htmlmixed',
+  theme:           'dracula',
+  lineNumbers:     true,
+  lineWrapping:    false,
+  autofocus:       true,
+  matchBrackets:   true,
+  autoCloseTags:   true,
+  styleActiveLine: true,
+  indentUnit:      2,
+  tabSize:         2,
+  indentWithTabs:  false,
+  extraKeys: {
+    "Ctrl-Z": function(cm){ cm.undo(); },
+    "Ctrl-Y": function(cm){ cm.redo(); },
+    "Tab": function(cm) {
+      if (cm.somethingSelected()) cm.indentSelection("add");
+      else cm.replaceSelection("  ", "end");
+    }
+  }
+});
+
+/* Resize to fill container */
+function resizeCM() {
+  editor.setSize("100%", document.documentElement.clientHeight + "px");
+  editor.refresh();
+}
+window.addEventListener('resize', resizeCM);
+resizeCM();
+
+/* ── Bridge API (called from Java with WebEngine.executeScript) ── */
+
+/** Called by Java to get the current editor text */
+function getContent() {
+  return editor.getValue();
+}
+
+/** Called by Java to set (replace) the editor text */
+function setContent(text) {
+  var cur = editor.getValue();
+  if (cur !== text) {
+    editor.setValue(text == null ? "" : text);
+    editor.clearHistory();
+  }
+}
+
+/** Called by Java to silently update text WITHOUT clearing history */
+function updateContent(text) {
+  if (editor.getValue() !== text) {
+    editor.setValue(text == null ? "" : text);
+  }
+}
+
+/** Called by Java to toggle line wrapping */
+function setWrap(wrap) {
+  editor.setOption("lineWrapping", !!wrap);
+}
+
+/** Called by Java to change font size (px string e.g. "14") */
+function setFontSize(px) {
+  document.querySelector('.CodeMirror').style.fontSize = px + 'px';
+  editor.refresh();
+}
+
+/** Register change listener — calls Java bridge object */
+editor.on('change', function() {
+  try {
+    if (typeof javaBridge !== 'undefined') {
+      javaBridge.onContentChanged();
+    }
+  } catch(e) {}
+});
+
+/** Register cursor listener */
+editor.on('cursorActivity', function() {
+  try {
+    if (typeof javaBridge !== 'undefined') {
+      var cur = editor.getCursor();
+      javaBridge.onCursorMoved(cur.line + 1, cur.ch + 1);
+    }
+  } catch(e) {}
+});
+</script>
+</body>
+</html>
