@@ -84,7 +84,8 @@ public class UIController {
 
         VBox topSection = new VBox(
                 tooling.menuBar(),
-                tooling.toolBar()
+                tooling.toolBar(),
+                tooling.optionStrip()
         );
         topSection.getStyleClass().add("top-section");
 
@@ -117,10 +118,10 @@ public class UIController {
         paragraphMode.setTooltip(new Tooltip("Text justification mode"));
 
         // ── Group 1: File actions ─────────────────────────────────────────────
-        Button newTabBtn  = iconBtn("＋", "New tab  (Ctrl+N)",     "tb-file");
-        Button openBtn    = iconBtn("📂", "Open file  (Ctrl+O)",   "tb-file");
-        Button saveBtn    = iconBtn("💾", "Save  (Ctrl+S)",         "tb-file tb-accent");
-        Button saveAsBtn  = iconBtn("📤", "Save As  (Ctrl+Shift+S)","tb-file");
+        Button newTabBtn  = iconBtn("＋ New",    "New tab  (Ctrl+N)",      "tb-file");
+        Button openBtn    = iconBtn("📂 Open",   "Open file  (Ctrl+O)",    "tb-file");
+        Button saveBtn    = iconBtn("💾 Save",   "Save  (Ctrl+S)",          "tb-file tb-accent");
+        Button saveAsBtn  = iconBtn("📤 Save As","Save As  (Ctrl+Shift+S)", "tb-file");
 
         newTabBtn.setOnAction(e -> tabManager.createNewTab());
         openBtn.setOnAction(e -> fileModule.openFile(stage, tabManager, statusLabel));
@@ -203,24 +204,16 @@ public class UIController {
                                      applySizeBtn,wrapBtn})
             b.getStyleClass().add("tb-tool");
 
-        // ── Group 6: Settings (right-aligned) ─────────────────────────────────
+        // ── Group 6: Settings inline (font size only) ──────────────────────
         Button themeBtn = createThemeButton(); themeBtn.setText("◑ Theme");
         themeBtn.setTooltip(new Tooltip("Toggle dark / light theme"));
         themeBtn.getStyleClass().add("tb-view");
 
-        // A spacer pushes the settings group to the right
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        // Inline labels for spinners
-        Label fsLabel  = new Label("Sz:");
-        Label wLabel   = new Label("W:");
-        Label indLabel = new Label("In:");
-        Label jLabel   = new Label("J:");
+        Label fsLabel = new Label("Sz:");
         fsLabel.getStyleClass().add("tb-spinner-label");
-        wLabel.getStyleClass().add("tb-spinner-label");
-        indLabel.getStyleClass().add("tb-spinner-label");
-        jLabel.getStyleClass().add("tb-spinner-label");
+        // applySizeBtn already declared above in Group 5; update its label for toolbar position
+        applySizeBtn.setText("✓ Apply");
+        applySizeBtn.setTooltip(new Tooltip("Apply font size to selection"));
 
         // ── Build single unified toolbar ──────────────────────────────────────
         ToolBar toolBar = new ToolBar(
@@ -241,21 +234,30 @@ public class UIController {
                 // Tools
                 processBtn, validateBtn, statsBtn, boilerBtn, wrapBtn,
                 new Separator(),
-                // Inline settings (right side via spacer)
-                spacer,
+                // Font size (compact, right of tools)
                 fsLabel, fontSizeSpinner, applySizeBtn,
-                wLabel, widthSpinner,
-                indLabel, indentSpinner,
-                jLabel, paragraphMode,
                 new Separator(),
                 themeBtn
         );
         toolBar.getStyleClass().add("editor-toolbar");
 
+        // ── Option strip (compact row for line/indent/justify) ──────────────────
+        HBox optionStrip = new HBox(6,
+                new Label("W:"),    widthSpinner,
+                new Label("In:"),   indentSpinner,
+                new Label("Just:"), paragraphMode
+        );
+        optionStrip.setPadding(new Insets(3, 8, 3, 8));
+        optionStrip.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        optionStrip.getStyleClass().add("option-strip");
+        for (var lbl : optionStrip.getChildren()) {
+            if (lbl instanceof Label l) l.getStyleClass().add("tb-spinner-label");
+        }
+
         // ── Menu bar ──────────────────────────────────────────────────────────
         MenuBar menuBar = buildMenuBar(stage);
 
-        return new Tooling(menuBar, toolBar);
+        return new Tooling(menuBar, toolBar, optionStrip);
     }
 
     /** Create a toolbar button with emoji/text label, tooltip, and style class(es). */
@@ -655,5 +657,5 @@ public class UIController {
     // Tooling record
     // =========================================================================
 
-    private record Tooling(MenuBar menuBar, ToolBar toolBar) {}
+    private record Tooling(MenuBar menuBar, ToolBar toolBar, HBox optionStrip) {}
 }

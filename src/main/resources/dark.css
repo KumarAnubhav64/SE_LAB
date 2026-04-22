@@ -167,16 +167,18 @@
     -fx-alignment: center;
 }
 
-/* ── Option Bar ──────────────────────────────────────────── */
-.option-bar {
+/* ── Option Strip (compact secondary row under toolbar) ───── */
+.option-bar,
+.option-strip {
     -fx-background-color: #181825;
-    -fx-padding: 4 8 4 8;
+    -fx-padding: 3 8 3 8;
     -fx-border-width: 0 0 1 0;
     -fx-border-color: #313244;
 }
-.option-bar .label {
-    -fx-text-fill: #a6adc8;
-    -fx-font-size: 12px;
+.option-bar .label,
+.option-strip .label {
+    -fx-text-fill: #6c7086;
+    -fx-font-size: 11px;
 }
 .spinner .text-field,
 .combo-box .list-cell,
